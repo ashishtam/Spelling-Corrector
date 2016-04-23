@@ -3,6 +3,7 @@ import random
 import string
 import numpy as np
 import sys
+import Viterbi
 
 class SpellingCorrection:
 
@@ -83,17 +84,27 @@ class SpellingCorrection:
 
     def probabilityAij(self):
         for i in range(0, len(self.alphabets)):
+            # Smoothing (helps to add the transition from the state where there is no count in training set
+            if (0 in self.Aij[i]):
+                self.Aij[i] = [x+1 for x in self.Aij[i]]
             sum = self.Aij[i].sum()
-            if sum != 0:
-                for j in range(0, len(self.alphabets)):
-                    self.probAij[i][j] = float(self.Aij[i][j]) / sum
+            for j in range(0, len(self.alphabets)):
+                self.probAij[i][j] = float(self.Aij[i][j]) / sum
 
     def probabilityEmission(self):
         for i in range(0, len(self.alphabets)):
+            # Smoothing (helps to add the transition from the state where there is no count in training set
+            if (0 in self.Eis[i]):
+                self.Eis[i] = [x+1 for x in self.Eis[i]]
             sum = self.Eis[i].sum()
-            if sum != 0:
-                for j in range(0, len(self.alphabets)):
-                    self.probEis[i][j] = float(self.Eis[i][j]) / sum
+            for j in range(0, len(self.alphabets)):
+                self.probEis[i][j] = float(self.Eis[i][j]) / sum
+
+    def getEmissionProbabilities(self):
+        return self.probEis
+
+    def getTransitionProbabilities(self):
+        return self.probAij
 
     def trainHMModel(self):
         self.splitDocument()
@@ -104,10 +115,13 @@ class SpellingCorrection:
         self.probabilityAij()
         self.probabilityEmission()
         # print self.Aij
+        # print self.Eis
         # print self.probAij
-        print self.probEis
+        # print self.probEis
 
 
 objSC = SpellingCorrection()
 objSC.trainHMModel()
+objViterbi = Viterbi.Viterbi(objSC.getEmissionProbabilities(), objSC.getTransitionProbabilities(), objSC.corruptedTestSet)
+objViterbi.process()
 
