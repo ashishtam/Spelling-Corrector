@@ -39,41 +39,72 @@ class SpellingCorrection:
         Splits the document into training set (80%) and test set (20%)
         """
         # self.readFromFile('basicTest.txt')
-        self.readFromFile('testdata.txt')
-        # self.readFromFile()
+        # self.readFromFile('testdata.txt')
+        self.readFromFile()
+        # self.readFromFile('rural.txt')
         self.splitToWords()
         indexSplit = int(0.8 * len(self.wordsList))
+        # indexSplit = len(self.wordsList)
         # splits into training set and test set
-        self.trainingSet = self.wordsList[:indexSplit]
-        self.testSet = self.wordsList[indexSplit:]
+        self.trainingSet = [x.lower().strip() for x in self.wordsList[:indexSplit]]
+        self.testSet = [x.lower().strip() for x in self.wordsList[indexSplit:]]
+        # print self.testSet
 
 
     def corruptText(self, wordList, isTrainingSet = False):
         """
         Corrupts the text and updates the emission count and transition count if it is training set
-        :param wordList:
-        :return:
         """
         corruptedlist = []
+        surroundingChars = {
+            'a': ['q', 'w', 's', 'x', 'z'],
+            'b': ['f', 'g', 'h', 'n', 'v'],
+            'c': ['x', 's', 'd', 'f', 'v'],
+            'd': ['w', 'e', 'r', 's', 'f', 'x', 'c', 'v'],
+            'e': ['w', 'r', 's', 'd', 'f'],
+            'f': ['e', 'r', 't', 'd', 'g', 'c', 'v', 'b'],
+            'g': ['r', 't', 'y', 'f', 'h', 'v', 'b', 'n'],
+            'h': ['t', 'y', 'u', 'g', 'j', 'b', 'n', 'm'],
+            'i': ['u', 'o', 'j', 'k', 'l'],
+            'j': ['y', 'u', 'i', 'h', 'k', 'n', 'm'],
+            'k': ['u', 'i', 'o', 'j', 'l', 'm'],
+            'l': ['i', 'o', 'p', 'k'],
+            'm': ['n', 'h', 'j', 'k'],
+            'n': ['b', 'g', 'h', 'j', 'm'],
+            'o': ['i', 'k', 'l', 'p'],
+            'p': ['o', 'l'],
+            'q': ['a', 's', 'w'],
+            'r': ['e', 'd', 'f', 'g', 't'],
+            's': ['q', 'w', 'e', 'a', 'd', 'z', 'x', 'c'],
+            't': ['r', 'y', 'f', 'g', 'h'],
+            'u': ['y', 'i', 'h', 'j', 'k'],
+            'v': ['d', 'f', 'g', 'c', 'b'],
+            'w': ['q', 'e', 'a', 's', 'd'],
+            'x': ['a', 's', 'd', 'z', 'c'],
+            'y': ['t', 'u', 'g', 'h', 'j'],
+            'z': ['a', 's', 'x']
+        }
         for word in wordList:
             tempWord = ""
-            for i in range(0, len(word)):
-                if (word[i].isalpha()):
-                    r = random.uniform(0, 1)
-                    # To corrupt the letter if the random value generated is less than threshold
-                    if (r < 0.2):
-                        tempWord += random.choice(string.ascii_lowercase)
-                    else:
-                        tempWord += word[i].lower()
-                    # updates the count for emission probability and transition probability
-                    if (isTrainingSet):
-                        self.incrEmissionCount(word[i].lower(), tempWord[i].lower())
-                        # Keep track of the transitions from state i to state j
-                        if (i is not len(word)-1):
-                            # count the transition from state i to state j
-                            self.incrTransitionCount(word[i].lower(), word[i+1].lower())
+            if (word.isalpha()):
+                for i in range(0, len(word)):
+                        r = random.uniform(0, 1)
+                        # To corrupt the letter if the random value generated is less than threshold
+                        if (r < 0.2):
+                            tempWord += random.choice(surroundingChars[word[i].lower()])
+                            # tempWord += random.choice(string.ascii_lowercase)
+                        else:
+                            tempWord += word[i].lower()
+                        # updates the count for emission probability and transition probability
+                        if (isTrainingSet):
+                            self.incrEmissionCount(word[i].lower(), tempWord[i].lower())
+                            # Keep track of the transitions from state i to state j
+                            if (i is not len(word)-1):
+                                # count the transition from state i to state j
+                                self.incrTransitionCount(word[i].lower(), word[i+1].lower())
 
-            corruptedlist.append(tempWord)
+                corruptedlist.append(tempWord.strip())
+
         return corruptedlist
 
     def incrTransitionCount(self, stateI, stateJ):
@@ -88,6 +119,7 @@ class SpellingCorrection:
             if (0 in self.Aij[i]):
                 self.Aij[i] = [x+1 for x in self.Aij[i]]
             sum = self.Aij[i].sum()
+            # print self.Aij[i], self.alphabets[i], sum
             for j in range(0, len(self.alphabets)):
                 self.probAij[i][j] = float(self.Aij[i][j]) / sum
 
@@ -97,6 +129,7 @@ class SpellingCorrection:
             if (0 in self.Eis[i]):
                 self.Eis[i] = [x+1 for x in self.Eis[i]]
             sum = self.Eis[i].sum()
+            # print self.alphabets[i], sum
             for j in range(0, len(self.alphabets)):
                 self.probEis[i][j] = float(self.Eis[i][j]) / sum
 
@@ -112,16 +145,11 @@ class SpellingCorrection:
         self.corruptedTrainingSet = self.corruptText(self.trainingSet, True)
         # Calculate the probability for transition from state i to state j
         self.corruptedTestSet = self.corruptText(self.testSet, False)
+
         self.probabilityAij()
         self.probabilityEmission()
-        # print self.Aij
-        # print self.Eis
-        # print self.probAij
-        # print self.probEis
-
 
 objSC = SpellingCorrection()
 objSC.trainHMModel()
 objViterbi = Viterbi.Viterbi(objSC.getEmissionProbabilities(), objSC.getTransitionProbabilities(), objSC.corruptedTestSet)
-objViterbi.process()
-
+objViterbi.process(objSC.testSet)
