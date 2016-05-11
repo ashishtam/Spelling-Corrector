@@ -12,16 +12,10 @@ class Viterbi:
         self.transitionProbabilities = probTransition
         self.initialProbabilities = float(1)/len(self.states)      # Same initial probabilities for every states
 
-        self.totalCorrected = 0
-        self.totalCorrectCorrection = 0
-        # self.totalIncorrectCorrection = 0
-        self.totalCorrectionsNeeded = 0
-        #Precision = totalCorrectCorrections/totalCorrected
-        #Recall = totalCorrectCorrections/totalCorrectionsNeeded
-
-        # print "Initial Probabilities:\n", self.initialProbabilities
-        # print "\n\nTransition Probabilities:\n", self.transitionProbabilities
-        # print "\n\nEmission Probabilities:\n", self.emissionProbabilities
+        self.FN = 0
+        self.TP = 0
+        self.totalWords = 0
+        self.FP = 0
 
     def calculateInitialDelta(self, symbolChar):
         self.delta = []
@@ -42,15 +36,12 @@ class Viterbi:
                     maxValue = mul
                     backTrack[j] = self.symbols[i]
             deltaCalc = maxValue + math.log((self.emissionProbabilities[j][self.symbols.index(symChar)]))
-            # deltaTemp.append(deltaCalc)
             deltaTemp[j] = deltaCalc
         self.delta = deltaTemp
         return backTrack
 
     def correctedWord(self, backTrack):
         temp = self.delta.index(max(self.delta))
-        # print self.delta
-        # print temp
         word = [self.symbols[temp]]
         if (backTrack):
             for l in backTrack:
@@ -60,8 +51,11 @@ class Viterbi:
         return ''.join(word)
 
     def process(self, testSet):
-        #Precision = totalCorrectCorrections/totalCorrected
-        #Recall = totalCorrectCorrections/totalCorrectionsNeeded
+        # TP: wrong-->correct
+        # FN: wrong-->wrong
+        # TP: correct-->wrong
+        #Precision = TP/(TP + FN)
+        #Recall = TP/(TP + FP)
 
         testSet = [x for x in testSet if x.isalpha()]
         counter = 0
@@ -79,22 +73,34 @@ class Viterbi:
 
             corrected = self.correctedWord(backtrack)
             # print "Corrected:", corrected
-            # Corrections Needed
+            self.totalWords += 1
             if (testSet[counter] != word):
-                self.totalCorrectionsNeeded += 1
-                # Total Correct Corrections
+                # self.totalCorrectionsNeeded += 1
+                # TP: True Positive (wrong->right)
                 if (testSet[counter] == corrected):
-                    self.totalCorrectCorrection += 1
-                # total corrections
+                    self.TP += 1
+                # FN: False Negative (wrong->wrong)
                 if (word != corrected):
-                    self.totalCorrected += 1
+                    self.FN += 1
+
+            if (testSet[counter] == word):
+                # FP: False Positive (correct->wrong)
+                if (word != corrected):
+                    self.FP += 1
 
 
             counter += 1
             # print "==============================="
 
-        print "Total Correct Corrections:", self.totalCorrectCorrection
-        print "Total Corrections Needed:", self.totalCorrectionsNeeded
-        print "Total Corrected: ", self.totalCorrected
-        print "Recall: ", float(self.totalCorrectCorrection)/self.totalCorrectionsNeeded
-        print "Precision: ", float(self.totalCorrectCorrection)/self.totalCorrected
+        # print "Total Correct Corrections:", self.TP
+        # print "Total Corrections Needed:", self.FP
+        # print "Total Corrected: ", self.FN
+        print "=================================="
+        print "Total Words          :", self.totalWords
+        print "True Positive  (W->C):", self.TP
+        print "False Negative (W->W):", self.FN
+        print "False Positive (C->W):", self.FP
+        print "----------------------------------"
+        print "Recall: ", float(self.TP) / (self.TP + self.FN) * 100
+        print "Precision: ", float(self.TP) / (self.TP + self.FP) * 100
+        print "=================================="

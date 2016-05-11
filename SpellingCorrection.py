@@ -1,8 +1,12 @@
+# @author Ashish Tamrakar
+# @Date 2016-03-11
+# Program to training the HMM model and then using Viterbi to find the corrected word
+# Python v2.7.10
+
 import re
 import random
 import string
 import numpy as np
-import sys
 import Viterbi
 
 class SpellingCorrection:
@@ -41,10 +45,8 @@ class SpellingCorrection:
         # self.readFromFile('basicTest.txt')
         # self.readFromFile('testdata.txt')
         self.readFromFile()
-        # self.readFromFile('rural.txt')
         self.splitToWords()
         indexSplit = int(0.8 * len(self.wordsList))
-        # indexSplit = len(self.wordsList)
         # splits into training set and test set
         self.trainingSet = [x.lower().strip() for x in self.wordsList[:indexSplit]]
         self.testSet = [x.lower().strip() for x in self.wordsList[indexSplit:]]
